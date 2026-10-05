@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Pulse Pro - Global Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                    colors: {
+                        bloomberg: {
+                            bg: '#000000',
+                            panel: '#0a0a0a',
+                            border: '#333333',
+                            text: '#e0e0e0',
+                            orange: '#ff8c00',
+                            green: '#00ff00',
+                            red: '#ff0000',
+                            blue: '#00bfff',
+                            muted: '#888888'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #000000; color: #e0e0e0; overflow: hidden; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #000000; }
+        ::-webkit-scrollbar-thumb { background: #333333; }
+        ::-webkit-scrollbar-thumb:hover { background: #555555; }
+        
+        .terminal-panel {
+            background: #0a0a0a;
+            border: 1px solid #333333;
+            border-radius: 4px;
+        }
+
+        /* Dot Typing Animation for AI */
+        .dot-typing {
+            position: relative; left: -9999px; width: 5px; height: 5px; border-radius: 2.5px; background-color: #ff8c00;
+            color: #ff8c00; box-shadow: 9984px 0 0 0 #ff8c00, 9999px 0 0 0 #ff8c00, 10014px 0 0 0 #ff8c00;
+            animation: dot-typing 1.5s infinite linear;
+        }
+        @keyframes dot-typing {
+            0% { box-shadow: 9984px 0 0 0 #ff8c00, 9999px 0 0 0 #ff8c00, 10014px 0 0 0 #ff8c00; }
+            16.667% { box-shadow: 9984px -5px 0 0 #ff8c00, 9999px 0 0 0 #ff8c00, 10014px 0 0 0 #ff8c00; }
+            33.333% { box-shadow: 9984px 0 0 0 #ff8c00, 9999px -5px 0 0 #ff8c00, 10014px 0 0 0 #ff8c00; }
+            50% { box-shadow: 9984px 0 0 0 #ff8c00, 9999px 0 0 0 #ff8c00, 10014px -5px 0 0 #ff8c00; }
+            66.667% { box-shadow: 9984px 0 0 0 #ff8c00, 9999px 0 0 0 #ff8c00, 10014px 0 0 0 #ff8c00; }
+            100% { box-shadow: 9984px 0 0 0 #ff8c00, 9999px 0 0 0 #ff8c00, 10014px 0 0 0 #ff8c00; }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col font-sans">
+
+    <header class="w-full flex flex-col border-b border-bloomberg-border z-10 bg-bloomberg-bg">
+        <!-- Top Nav -->
+        <div class="flex justify-between items-center px-4 py-1 border-b border-bloomberg-border bg-[#050505]">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-bloomberg-orange"></i>
+                <h1 class="text-sm font-bold uppercase tracking-widest text-white">Market Pulse <span class="text-bloomberg-orange">Terminal</span></h1>
+            </div>
+            <div class="flex items-center gap-4 text-[11px] font-mono font-semibold text-bloomberg-muted">
+                <span id="marketStatus" class="text-bloomberg-green"><i class="fa-solid fa-circle text-[8px] animate-pulse"></i> LIVE</span>
+                <span id="currentTime">Loading Time...</span>
+            </div>
+        </div>
+
+        <!-- TradingView Ticker Tape -->
+        <div class="h-12 w-full bg-bloomberg-bg overflow-hidden relative">
+            <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
+                <div class="tradingview-widget-container__widget" style="height: calc(100% - 32px); width: 100%;"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+                {
+                    "symbols": [
+                        { "description": "NIFTY 50", "proName": "NSE:NIFTY" },
+                        { "description": "SENSEX", "proName": "BSE:SENSEX" },
+                        { "description": "BANKNIFTY", "proName": "NSE:BANKNIFTY" },
+                        { "description": "DOW JONES", "proName": "CBOT:YM1!" },
+                        { "description": "NASDAQ 100", "proName": "NASDAQ:NDX" },
+                        { "description": "CRUDE OIL WTI", "proName": "NYMEX:CL1!" },
+                        { "description": "GOLD", "proName": "COMEX:GC1!" }
+                    ],
+                    "showSymbolLogo": true,
+                    "colorTheme": "dark",
+                    "isTransparent": true,
+                    "displayMode": "adaptive",
+                    "locale": "in"
+                }
+                </script>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-row overflow-hidden w-full p-1 gap-1 bg-bloomberg-border">
+        
+        <!-- Left Panel: Charting Area -->
+        <section class="flex-1 flex flex-col terminal-panel min-w-0">
+            <!-- Chart Controls -->
+            <div class="flex items-center gap-2 p-1.5 border-b border-bloomberg-border bg-[#0d0d0d]">
+                <button onclick="loadChart('NSE:NIFTY', this)" id="btn_NSE_NIFTY" class="chart-btn px-3 py-1 text-xs font-mono font-bold bg-bloomberg-orange text-black rounded transition-colors">NIFTY 50</button>
+                <button onclick="loadChart('BSE:SENSEX', this)" id="btn_BSE_SENSEX" class="chart-btn px-3 py-1 text-xs font-mono text-bloomberg-muted hover:text-white transition-colors border border-transparent hover:border-bloomberg-border rounded">SENSEX</button>
+                <button onclick="loadChart('NYMEX:CL1!', this)" id="btn_NYMEX_CL1\\!" class="chart-btn px-3 py-1 text-xs font-mono text-bloomberg-muted hover:text-white transition-colors border border-transparent hover:border-bloomberg-border rounded">CRUDE OIL</button>
+                <div class="flex-1"></div>
+                <div class="text-[10px] text-bloomberg-muted font-mono px-2 uppercase border border-bloomberg-border rounded bg-black/50 py-0.5">
+                    <i class="fa-solid fa-lock text-bloomberg-green mr-1"></i> SECURE FEED
+                </div>
+            </div>
+            
+            <!-- TradingView Chart Container -->
+            <div class="flex-1 w-full h-full relative" id="tv_chart_container"></div>
+        </section>
+
+        <!-- Right Panel: AI & Sentiment -->
+        <section class="w-96 flex flex-col gap-1 shrink-0 bg-transparent">
+            
+            <!-- Sentiment Panel -->
+            <div class="terminal-panel h-auto min-h-[160px] flex flex-col p-2 bg-[#050505]">
+                <div class="flex justify-between items-center border-b border-bloomberg-border pb-1 mb-2">
+                    <span class="text-xs font-bold text-bloomberg-orange uppercase font-mono tracking-wide"><i class="fa-solid fa-brain"></i> AI Market Sentiment</span>
+                    <button onclick="fetchMarketSentiment()" id="refreshSentimentBtn" class="text-bloomberg-muted hover:text-white transition-colors">
+                        <i class="fa-solid fa-sync-alt text-xs"></i>
+                    </button>
+                </div>
+                
+                <div id="sentimentLoading" class="flex-1 flex flex-col items-center justify-center text-bloomberg-muted">
+                    <i class="fa-solid fa-circle-notch fa-spin text-xl mb-2 text-bloomberg-orange"></i>
+                    <span class="text-[10px] font-mono uppercase">Analyzing Feeds...</span>
+                </div>
+
+                <div id="sentimentContent" class="hidden flex-col h-full">
+                    <div class="flex items-center justify-between mb-2 px-1">
+                        <span class="text-xs font-mono text-bloomberg-muted">OVERALL TREND:</span>
+                        <span id="sentimentBadge" class="text-sm font-bold font-mono px-2 py-0.5 rounded border">--</span>
+                    </div>
+                    <div class="flex-1 overflow-y-auto">
+                        <ul id="newsList" class="space-y-1.5 text-[11px] font-sans text-gray-300">
+                            <!-- News injected here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Panel -->
+            <div class="terminal-panel flex-1 flex flex-col p-2 bg-[#050505]">
+                <div class="border-b border-bloomberg-border pb-1 mb-2">
+                    <span class="text-xs font-bold text-bloomberg-blue uppercase font-mono tracking-wide"><i class="fa-solid fa-terminal"></i> AI Analyst (Hinglish)</span>
+                </div>
+
+                <div id="chatHistory" class="flex-1 overflow-y-auto space-y-3 pr-1 mb-2 custom-scrollbar">
+                    <!-- Initial System Message -->
+                    <div class="flex flex-col gap-1 items-start">
+                        <span class="text-[9px] font-mono text-bloomberg-orange uppercase">System // Terminal</span>
+                        <div class="bg-[#111111] border border-[#222222] p-2 rounded text-[12px] text-gray-300 w-full shadow-inner">
+                            Namaste! Main aapka Market Pulse AI Assistant hoon. Aap mujhse Indian market (Nifty/Sensex) ya US markets ke baare mein sawaal pooch sakte hain. <br><br><i>Tip: Try asking "Aaj Nifty kaisa lag raha hai?"</i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="relative mt-auto border border-bloomberg-border rounded overflow-hidden flex bg-black">
+                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-bloomberg-orange font-mono text-xs">></span>
+                    <input type="text" id="aiInput" 
+                        class="w-full bg-transparent text-white text-[12px] pl-6 pr-10 py-2 focus:outline-none focus:bg-[#111] font-mono placeholder-gray-600 transition-colors" 
+                        placeholder="Type your query..."
+                        onkeypress="handleChatKey(event)">
+                    <button id="sendBtn" onclick="sendChatMessage()" class="absolute right-0 top-0 h-full px-3 text-bloomberg-muted hover:text-bloomberg-orange hover:bg-[#222] transition-colors border-l border-bloomberg-border">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    
+    <script>
+        // --- 1. Clock Update ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('currentTime').innerText = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second:'2-digit', hour12: true }) + " IST";
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- 2. TradingView Chart Logic ---
+        let tvWidget = null;
+        
+        function loadChart(symbol, btnElement = null) {
+            // Update Tab Styles
+            document.querySelectorAll('.chart-btn').forEach(btn => {
+                btn.classList.remove('bg-bloomberg-orange', 'text-black', 'font-bold');
+                btn.classList.add('text-bloomberg-muted', 'font-normal');
+                btn.classList.remove('border-transparent');
+            });
+            
+            if(btnElement) {
+                btnElement.classList.remove('text-bloomberg-muted', 'font-normal');
+                btnElement.classList.add('bg-bloomberg-orange', 'text-black', 'font-bold');
+            } else {
+                // Default fallback highlighting
+                document.getElementById('btn_NSE_NIFTY').classList.add('bg-bloomberg-orange', 'text-black', 'font-bold');
+            }
+
+            // Init Chart
+            tvWidget = new TradingView.widget({
+                "autosize": true,
+                "symbol": symbol,
+                "interval": "15",
+                "timezone": "Asia/Kolkata",
+                "theme": "dark",
+                "style": "1", // Candlesticks
+                "locale": "in",
+                "enable_publishing": false,
+                "backgroundColor": "#050505",
+                "gridColor": "#1a1a1a",
+                "hide_top_toolbar": false,
+                "hide_legend": false,
+                "save_image": false,
+                "container_id": "tv_chart_container",
+                "toolbar_bg": "#0a0a0a",
+                "studies": [
+                    "Volume@tv-basicstudies",
+                    "RSI@tv-basicstudies"
+                ],
+                "disabled_features": ["header_symbol_search", "header_compare"]
+            });
+        }
+
+        // Load Nifty by default
+        loadChart('NSE:NIFTY');
+
+        // --- 3. Gemini API Configuration ---
+        const apiKey = ""; // API Key handled securely by Canvas environment
+        const apiBaseUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        // Elements
+        const sentimentLoading = document.getElementById('sentimentLoading');
+        const sentimentContent = document.getElementById('sentimentContent');
+        const sentimentBadge = document.getElementById('sentimentBadge');
+        const newsList = document.getElementById('newsList');
+        const chatHistory = document.getElementById('chatHistory');
+        const aiInput = document.getElementById('aiInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // --- 4. Sentiment Analyzer Logic ---
+        async function fetchMarketSentiment() {
+            sentimentLoading.classList.remove('hidden');
+            sentimentContent.classList.add('hidden');
+            document.getElementById('refreshSentimentBtn').disabled = true;
+            document.getElementById('refreshSentimentBtn').classList.add('animate-spin');
+
+            const prompt = `Act as an expert Stock Market algorithm. Search the latest real-time news regarding the Indian Market (Nifty/Sensex), US Market, and Crude Oil. 
+            Analyze the overall combined market sentiment right now.
+            Respond ONLY in valid JSON using this exact schema:
+            {
+                "sentiment": "POSITIVE" | "NEGATIVE" | "NEUTRAL",
+                "newsItems": ["short headline 1", "short headline 2", "short headline 3"]
+            }`;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                tools: [{ "google_search": {} }],
+                generationConfig: { responseMimeType: "application/json" }
+            };
+
+            try {
+                const response = await fetch(apiBaseUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                if (result.candidates && result.candidates[0].content.parts[0].text) {
+                    const data = JSON.parse(result.candidates[0].content.parts[0].text);
+                    renderSentiment(data);
+                } else {
+                    throw new Error("Invalid API Response");
+                }
+            } catch (error) {
+                console.error("Sentiment Error:", error);
+                renderSentiment({
+                    sentiment: "NEUTRAL",
+                    newsItems: ["⚠️ Failed to fetch live data.", "Network issue or API limit reached."]
+                });
+            } finally {
+                sentimentLoading.classList.add('hidden');
+                sentimentContent.classList.remove('hidden');
+                sentimentContent.classList.add('flex');
+                document.getElementById('refreshSentimentBtn').disabled = false;
+                document.getElementById('refreshSentimentBtn').classList.remove('animate-spin');
+            }
+        }
+
+        function renderSentiment(data) {
+            const sentiment = (data.sentiment || "NEUTRAL").toUpperCase();
+            sentimentBadge.innerText = sentiment;
+            
+            // Apply bloomberg styling to badge
+            sentimentBadge.className = 'text-sm font-bold font-mono px-2 py-0.5 rounded border';
+            
+            if (sentiment === 'POSITIVE') {
+                sentimentBadge.classList.add('text-bloomberg-green', 'border-bloomberg-green', 'bg-[#003300]');
+            } else if (sentiment === 'NEGATIVE') {
+                sentimentBadge.classList.add('text-bloomberg-red', 'border-bloomberg-red', 'bg-[#330000]');
+            } else {
+                sentimentBadge.classList.add('text-bloomberg-blue', 'border-bloomberg-blue', 'bg-[#001f33]');
+            }
+
+            // Render news
+            newsList.innerHTML = data.newsItems.map(news => `
+                <li class="flex items-start gap-1.5 border-b border-[#222] pb-1.5 last:border-0">
+                    <i class="fa-solid fa-caret-right text-bloomberg-orange mt-0.5 text-[10px]"></i>
+                    <span class="leading-tight">${news}</span>
+                </li>
+            `).join('');
+        }
+
+        // --- 5. Chatbot Logic ---
+        function handleChatKey(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        function appendMessage(sender, text, isHtml = false) {
+            const isUser = sender === 'user';
+            
+            const nameLabel = isUser ? 'User // Terminal' : 'AI Analyst // Terminal';
+            const nameColor = isUser ? 'text-bloomberg-blue' : 'text-bloomberg-orange';
+            const boxClass = isUser ? 'bg-[#0f1b29] border-[#1a2d42]' : 'bg-[#1a1510] border-[#332211]';
+
+            const formattedText = isHtml ? text : `<p>${text}</p>`;
+
+            const msgHtml = `
+                <div class="flex flex-col gap-1 items-start w-full">
+                    <span class="text-[9px] font-mono ${nameColor} uppercase tracking-wide">${nameLabel}</span>
+                    <div class="border p-2 rounded text-[12px] text-gray-200 w-full shadow-inner ${boxClass} leading-relaxed">
+                        ${formattedText}
+                    </div>
+                </div>
+            `;
+            chatHistory.insertAdjacentHTML('beforeend', msgHtml);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const query = aiInput.value.trim();
+            if (!query) return;
+
+            appendMessage('user', query);
+            aiInput.value = '';
+            aiInput.disabled = true;
+            sendBtn.disabled = true;
+
+            const loadingId = 'loading-' + Date.now();
+            chatHistory.insertAdjacentHTML('beforeend', `
+                <div id="${loadingId}" class="flex flex-col gap-1 items-start w-full">
+                    <span class="text-[9px] font-mono text-bloomberg-orange uppercase tracking-wide">AI Analyst // Terminal</span>
+                    <div class="bg-[#1a1510] border border-[#332211] p-3 rounded w-full h-8 flex items-center">
+                        <div class="ml-[9999px] dot-typing"></div>
+                    </div>
+                </div>
+            `);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            const systemPrompt = `You are a highly professional Stock Market Analyst inside a Bloomberg-style trading terminal.
+            The user will ask you about the market.
+            CRITICAL RULES:
+            1. You MUST reply in conversational Hinglish (Hindi written in English alphabet, mixed with English trading terms).
+            2. Be direct, punchy, and sound like a pro trader. Keep it under 100 words.
+            3. Use basic HTML (<b>, <br>, <ul>, <li>, <span style="color:green/red">) for formatting. DO NOT use Markdown.
+            4. Base your analysis on real, current live market data fetched via search.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: query }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                tools: [{ "google_search": {} }]
+            };
+
+            try {
+                const response = await fetch(apiBaseUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                document.getElementById(loadingId).remove();
+                
+                if (result.candidates && result.candidates[0].content.parts[0].text) {
+                    let htmlContent = result.candidates[0].content.parts[0].text
+                        .replace(/```html/g, '')
+                        .replace(/```/g, '')
+                        .trim();
+                    appendMessage('ai', htmlContent, true);
+                } else {
+                    throw new Error("Empty Response");
+                }
+            } catch (error) {
+                console.error("Chat API Error:", error);
+                document.getElementById(loadingId)?.remove();
+                appendMessage('ai', "<b style='color:red;'>System Error:</b> Cannot connect to AI core right now. Please try again.", true);
+            } finally {
+                aiInput.disabled = false;
+                sendBtn.disabled = false;
+                aiInput.focus();
+            }
+        }
+
+        // Initialize Sentiment on load
+        window.onload = () => {
+            fetchMarketSentiment();
+        };
+    </script>
+</body>
+</html>
