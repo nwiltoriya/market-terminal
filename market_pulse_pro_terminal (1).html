@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Pulse Pro - Global Terminal</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                    colors: {
+                        bloomberg: {
+                            bg: '#131722',
+                            panel: '#1e222d',
+                            border: '#2a2e39',
+                            text: '#d1d4dc',
+                            orange: '#ff9800',
+                            blue: '#2962ff',
+                            red: '#f23645',
+                            green: '#089981'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            background-color: #131722; 
+            color: #d1d4dc; 
+            overflow: hidden; 
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #131722; }
+        ::-webkit-scrollbar-thumb { background: #2a2e39; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #434651; }
+        
+        .panel {
+            background: #1e222d;
+            border: 1px solid #2a2e39;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            background-color: #ff9800;
+            border-radius: 50%;
+            margin-right: 3px;
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col font-sans text-sm">
+
+    <header class="w-full flex flex-col z-10 shrink-0">
+        <!-- Top Nav Bar -->
+        <div class="flex justify-between items-center px-4 py-1.5 bg-[#0b0e14] border-b border-bloomberg-border">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-bloomberg-blue"></i>
+                <h1 class="text-sm font-bold tracking-wide text-white">MARKET PULSE <span class="text-bloomberg-blue">PRO</span></h1>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-mono text-gray-400">
+                <div class="flex items-center gap-1.5">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-bloomberg-green opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-bloomberg-green"></span>
+                    </span>
+                    <span class="text-bloomberg-green">LIVE FEED</span>
+                </div>
+                <span id="currentTime">--:--:--</span>
+            </div>
+        </div>
+
+        <!-- TradingView Ticker Tape -->
+        <div class="h-10 w-full bg-[#1d212b] overflow-hidden relative border-b border-bloomberg-border">
+            <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
+                <div class="tradingview-widget-container__widget" style="height: calc(100% - 32px); width: 100%;"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+                {
+                    "symbols": [
+                        { "description": "NIFTY 50", "proName": "NSE:NIFTY" },
+                        { "description": "BSE SENSEX", "proName": "BSE:SENSEX" },
+                        { "description": "CRUDE OIL", "proName": "NYMEX:CL1!" },
+                        { "description": "DOW JONES", "proName": "CBOT:YM1!" },
+                        { "description": "NASDAQ 100", "proName": "NASDAQ:NDX" },
+                        { "description": "GOLD", "proName": "COMEX:GC1!" }
+                    ],
+                    "showSymbolLogo": true,
+                    "colorTheme": "dark",
+                    "isTransparent": true,
+                    "displayMode": "adaptive",
+                    "locale": "in"
+                }
+                </script>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 w-full flex flex-row overflow-hidden p-2 gap-2 bg-bloomberg-bg">
+        
+        <!-- Left Column: Chart & AI Chat -->
+        <div class="w-2/3 flex flex-col gap-2 h-full">
+            
+            <!-- Chart Panel -->
+            <section class="panel flex-1 flex flex-col relative">
+                <div class="flex justify-between items-center p-1.5 border-b border-bloomberg-border bg-[#181c25]">
+                    <div class="flex gap-1" id="chart-controls">
+                        <button onclick="switchChart('NSE:NIFTY', this)" class="chart-btn bg-bloomberg-blue text-white px-3 py-1 text-xs font-mono rounded hover:bg-blue-600 transition">NIFTY 50</button>
+                        <button onclick="switchChart('BSE:SENSEX', this)" class="chart-btn bg-transparent text-gray-400 border border-bloomberg-border px-3 py-1 text-xs font-mono rounded hover:text-white transition">SENSEX</button>
+                        <button onclick="switchChart('NYMEX:CL1!', this)" class="chart-btn bg-transparent text-gray-400 border border-bloomberg-border px-3 py-1 text-xs font-mono rounded hover:text-white transition">CRUDE OIL</button>
+                    </div>
+                </div>
+                <div class="flex-1 w-full relative" id="tv_chart_container">
+                    <!-- TV Chart injects here -->
+                </div>
+            </section>
+
+            <!-- AI Chat Panel -->
+            <section class="panel h-[35%] flex flex-col min-h-[250px]">
+                <div class="px-3 py-1.5 border-b border-bloomberg-border bg-[#181c25] flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-robot text-bloomberg-orange"></i>
+                        <span class="text-xs font-bold text-white uppercase">AI Market Analyzer</span>
+                    </div>
+                    <span class="text-[10px] text-gray-400 font-mono">Gemini-Powered Intelligence</span>
+                </div>
+                
+                <div id="chatHistory" class="flex-1 overflow-y-auto p-3 space-y-3 bg-[#131722] text-sm font-mono">
+                    <div class="flex flex-col gap-1 items-start">
+                        <span class="text-[9px] text-bloomberg-orange uppercase">System</span>
+                        <div class="bg-[#1e222d] border border-bloomberg-border p-2 rounded-md text-gray-300 w-full">
+                            > Terminal initialized. Accessing Live Markets & Web Search.<br>
+                            > Sir, aap mujhse kisi bhi stock, market trend ya news ka analysis Hinglish mein pooch sakte hain.<br>
+                            > Type your query below.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-2 border-t border-bloomberg-border bg-[#181c25]">
+                    <form id="chatForm" onsubmit="handleChatSubmit(event)" class="relative flex items-center">
+                        <span class="absolute left-2 text-bloomberg-orange font-mono font-bold">></span>
+                        <input type="text" id="aiInput" 
+                            class="w-full bg-[#131722] border border-bloomberg-border text-white text-sm pl-6 pr-10 py-1.5 rounded focus:outline-none focus:border-bloomberg-blue font-mono transition" 
+                            placeholder="Analyze impact of..." autocomplete="off">
+                        <button type="submit" id="sendBtn" class="absolute right-2 text-gray-400 hover:text-bloomberg-blue transition p-1">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+            </section>
+        </div>
+
+        <!-- Right Column: Live News -->
+        <div class="w-1/3 flex flex-col h-full panel overflow-hidden">
+            <div class="px-3 py-1.5 border-b border-bloomberg-border bg-[#181c25] flex items-center gap-2">
+                <i class="fa-regular fa-newspaper text-white"></i>
+                <span class="text-xs font-bold text-white uppercase">Live Market News</span>
+            </div>
+            <div class="flex-1 w-full bg-[#131722]">
+                <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
+                    <div class="tradingview-widget-container__widget" style="height:100%; width: 100%;"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
+                    {
+                        "feedMode": "all_symbols",
+                        "isTransparent": true,
+                        "displayMode": "regular",
+                        "width": "100%",
+                        "height": "100%",
+                        "colorTheme": "dark",
+                        "locale": "in"
+                    }
+                    </script>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- TV Script -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    
+    <script>
+        // 1. Clock
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').innerText = now.toLocaleTimeString('en-IN', { hour12: true }) + " IST";
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // 2. Chart Logic
+        function switchChart(symbol, btnElement) {
+            const buttons = document.querySelectorAll('.chart-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-bloomberg-blue', 'text-white');
+                btn.classList.add('bg-transparent', 'text-gray-400', 'border-bloomberg-border');
+            });
+            
+            if (btnElement) {
+                btnElement.classList.remove('bg-transparent', 'text-gray-400', 'border-bloomberg-border');
+                btnElement.classList.add('bg-bloomberg-blue', 'text-white');
+            }
+
+            document.getElementById('tv_chart_container').innerHTML = '';
+
+            new TradingView.widget({
+                "autosize": true,
+                "symbol": symbol,
+                "interval": "15",
+                "timezone": "Asia/Kolkata",
+                "theme": "dark",
+                "style": "1",
+                "locale": "in",
+                "enable_publishing": false,
+                "backgroundColor": "#131722",
+                "gridColor": "#1e222d",
+                "hide_top_toolbar": false,
+                "hide_legend": false,
+                "save_image": false,
+                "container_id": "tv_chart_container",
+                "toolbar_bg": "#1e222d",
+                "studies": ["Volume@tv-basicstudies"],
+                "disabled_features": ["header_symbol_search", "header_compare"]
+            });
+        }
+        
+        window.onload = () => {
+            switchChart('NSE:NIFTY', document.querySelector('.chart-btn'));
+        };
+
+        // 3. AI Analyst Logic
+        const apiKey = ""; // Handled dynamically in Canvas
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+        
+        const chatHistory = document.getElementById('chatHistory');
+        const aiInput = document.getElementById('aiInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function appendUserMessage(text) {
+            const msgHtml = `
+                <div class="flex flex-col gap-1 items-end w-full">
+                    <span class="text-[9px] text-gray-500 uppercase">You</span>
+                    <div class="text-bloomberg-blue bg-[#1e222d] border border-bloomberg-border px-3 py-1.5 rounded-md inline-block max-w-[80%] break-words">
+                        > ${escapeHtml(text)}
+                    </div>
+                </div>
+            `;
+            chatHistory.insertAdjacentHTML('beforeend', msgHtml);
+            scrollToBottom();
+        }
+
+        function appendLoadingIndicator() {
+            const id = 'loading-' + Date.now();
+            const msgHtml = `
+                <div id="${id}" class="flex flex-col gap-1 items-start w-full">
+                    <span class="text-[9px] text-bloomberg-orange uppercase">AI Analyst</span>
+                    <div class="bg-[#1e222d] border border-bloomberg-border px-3 py-2 rounded-md h-8 flex items-center">
+                        <div class="typing-indicator"><span></span><span></span><span></span></div>
+                    </div>
+                </div>
+            `;
+            chatHistory.insertAdjacentHTML('beforeend', msgHtml);
+            scrollToBottom();
+            return id;
+        }
+
+        function appendAiMessage(htmlContent) {
+            const msgHtml = `
+                <div class="flex flex-col gap-1 items-start w-full">
+                    <span class="text-[9px] text-bloomberg-orange uppercase">AI Analyst</span>
+                    <div class="bg-[#1e222d] border border-[#332a1e] px-3 py-2 rounded-md text-gray-300 w-full overflow-hidden">
+                        ${htmlContent}
+                    </div>
+                </div>
+            `;
+            chatHistory.insertAdjacentHTML('beforeend', msgHtml);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        async function handleChatSubmit(e) {
+            e.preventDefault();
+            const query = aiInput.value.trim();
+            if (!query) return;
+
+            appendUserMessage(query);
+            aiInput.value = '';
+            aiInput.disabled = true;
+            sendBtn.disabled = true;
+            
+            const loadingId = appendLoadingIndicator();
+
+            const systemPrompt = `You are a Bloomberg Terminal AI assistant. 
+            RULES:
+            1. Respond in professional Hinglish (Hindi written in English alphabet, mixed with market terminology).
+            2. Keep answers concise, highly analytical, and point-to-point.
+            3. Use HTML for formatting: <b>bold</b>, <ul><li>lists</li></ul>, <br> for breaks.
+            4. Color code numbers: <span style="color:#089981;">positive</span>, <span style="color:#f23645;">negative</span>.
+            5. Base all info on live web searches using the google_search tool.
+            6. Output raw HTML string, NO markdown formatting (\`\`\`html).`;
+
+            const payload = {
+                contents: [{ parts: [{ text: query }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                tools: [{ "google_search": {} }]
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                document.getElementById(loadingId)?.remove();
+
+                if (result.candidates?.[0]?.content?.parts?.[0]) {
+                    let html = result.candidates[0].content.parts[0].text;
+                    html = html.replace(/```html/gi, '').replace(/```/g, '').trim();
+                    appendAiMessage(html);
+                } else {
+                    throw new Error("No valid response");
+                }
+            } catch (error) {
+                console.error("API Error:", error);
+                document.getElementById(loadingId)?.remove();
+                appendAiMessage(`<span style="color: #f23645;">> Error: Data Feed Connection Lost. Please try again.</span>`);
+            } finally {
+                aiInput.disabled = false;
+                sendBtn.disabled = false;
+                aiInput.focus();
+            }
+        }
+    </script>
+</body>
+</html>
